@@ -136,7 +136,7 @@ function SongView() {
       {song.notes && <p className="mt-4 rounded-lg border-l-4 border-primary bg-card px-4 py-3 text-sm">{song.notes}</p>}
 
       {song.chords && (
-        <section className="mt-6">
+        <section className="sticky top-[60px] z-10 -mx-4 mt-6 border-b border-border bg-background/95 px-4 pb-3 backdrop-blur">
           <h2 className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Chords</h2>
           <pre className="mt-2 whitespace-pre-wrap font-mono font-semibold text-chord" style={{ fontSize }}>{transposeText(song.chords, steps, flats)}</pre>
         </section>
