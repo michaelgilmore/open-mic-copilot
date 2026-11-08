@@ -28,3 +28,7 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Project rules
+- Data access goes through the browser Supabase client with per-user RLS (user_id = auth.uid()) on songs, setlists, setlist_songs; why: each signed-in user must only see their own entries.
+- Transposition logic lives in src/lib/transpose.ts with tests in src/test/transpose.test.ts; why: key changes must stay correct for chord lines and inline [chord] markers.
