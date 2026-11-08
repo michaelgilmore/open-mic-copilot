@@ -8,7 +8,6 @@ import { prefersFlats, stepsBetween, transposeKey, transposeText } from "@/lib/t
 import { hasUnsavedKeyOrTempo, type KeyTempoDraft } from "@/lib/song-draft";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 
 export const Route = createFileRoute("/_authenticated/songs/$id")({
   head: () => ({ meta: [{ title: "Song — Open Mic Copilot" }, { name: "description", content: "View and perform a song." }] }),
@@ -70,6 +69,12 @@ function SongView() {
 
   function commitSpeed(v: number) {
     save.mutate({ id, values: { title: song!.title, scroll_speed: v } });
+  }
+
+  function changeSpeed(delta: number) {
+    const next = Math.min(150, Math.max(5, speed + delta));
+    setSpeed(next);
+    commitSpeed(next);
   }
 
   function changeKey(delta: number) {
@@ -168,20 +173,22 @@ function SongView() {
             <Button variant="secondary" size="icon" onClick={() => changeTempo(1)} aria-label="Tempo up"><Plus /></Button>
             {draft.your_tempo != null && <Button variant="ghost" size="icon" onClick={resetTempo} aria-label="Reset tempo"><RotateCcw /></Button>}
           </div>
-          <div className="flex min-w-[220px] flex-1 items-center gap-3">
+          <div className="flex items-center gap-1">
             <Button size="icon" className="size-11 rounded-full" onClick={() => setPlaying(!playing)} aria-label={playing ? "Stop scrolling" : "Start scrolling"}>
               {playing ? <Pause /> : <Play />}
             </Button>
-            <div className="flex-1">
-              <div className="text-xs text-muted-foreground">Scroll speed {speed}</div>
-              <Slider min={5} max={150} step={1} value={[speed]} onValueChange={(v) => setSpeed(v[0] ?? speed)} onValueCommit={(v) => commitSpeed(v[0] ?? speed)} aria-label="Scroll speed" />
+            <Button variant="secondary" size="icon" onClick={() => changeSpeed(-5)} aria-label="Scroll speed down"><Minus /></Button>
+            <div className="w-14 text-center">
+              <div className="font-mono text-lg font-semibold">{speed}</div>
+              <div className="text-[10px] text-muted-foreground">scroll</div>
             </div>
+            <Button variant="secondary" size="icon" onClick={() => changeSpeed(5)} aria-label="Scroll speed up"><Plus /></Button>
           </div>
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="sm" onClick={() => setFontSize(Math.max(12, fontSize - 2))}>A−</Button>
             <Button variant="ghost" size="sm" onClick={() => setFontSize(Math.min(40, fontSize + 2))}>A+</Button>
           </div>
-          <div className="flex flex-col items-end gap-0.5">
+          <div className="flex items-center gap-2">
             <Button size="sm" onClick={saveChanges} disabled={!dirty || save.isPending} aria-label="Save key and tempo for this song">
               <Save />
               {save.isPending ? "Saving…" : "Save"}
