@@ -11,7 +11,7 @@ export function transposeNote(note: string, steps: number, preferFlats = false):
   const i = noteIndex(note);
   if (i < 0) return note;
   const j = (((i + steps) % 12) + 12) % 12;
-  return (preferFlats ? FLATS : SHARPS)[j]!;
+  return (preferFlats ? FLATS : SHARPS)[j] ?? note;
 }
 
 /** Transpose a chord symbol like "F#m7/C#". */
@@ -22,7 +22,8 @@ export function transposeChord(chord: string, steps: number, preferFlats = false
 export function transposeKey(key: string, steps: number): string {
   const m = key.match(/^([A-G][#b]?)(.*)$/);
   if (!m) return key;
-  const root = m[1]!;
+  const root = m[1];
+  if (!root) return key;
   const rest = m[2] ?? "";
   const target = transposeNote(root, steps, false);
   const flat = transposeNote(root, steps, true);
@@ -40,8 +41,11 @@ export function stepsBetween(fromKey: string, toKey: string): number {
   const from = fromKey.match(/^([A-G][#b]?)/);
   const to = toKey.match(/^([A-G][#b]?)/);
   if (!from || !to) return 0;
-  const a = noteIndex(from[1]!);
-  const b = noteIndex(to[1]!);
+  const fromRoot = from[1];
+  const toRoot = to[1];
+  if (!fromRoot || !toRoot) return 0;
+  const a = noteIndex(fromRoot);
+  const b = noteIndex(toRoot);
   if (a < 0 || b < 0) return 0;
   let d = (b - a) % 12;
   if (d > 6) d -= 12;
@@ -59,9 +63,12 @@ export function transposeText(text: string, steps: number, preferFlats = false):
     .split("\n")
     .map((line) => {
       const withBrackets = line.replace(/\[([^\]]+)\]/g, (_, c) => `[${transposeChord(c, steps, preferFlats)}]`);
-      const tokens = line.trim().split(/[\s|]+/).filter(Boolean);
+      // Capo annotations describe the guitar setup, not chord tokens.
+      // Ignore them when recognizing a chord line, but preserve them verbatim.
+      const chordLine = line.replace(/\(capo\s+\d+\)/gi, "");
+      const tokens = chordLine.trim().split(/[\s|]+/).filter(Boolean);
       if (tokens.length && tokens.every((t) => CHORD_TOKEN.test(t) || t === "-" || /^x\d$/.test(t))) {
-        return line.replace(/\S+/g, (t) => (CHORD_TOKEN.test(t) ? transposeChord(t, steps, preferFlats) : t));
+        return line.replace(/\(capo\s+\d+\)|[^\s|]+/gi, (t) => (CHORD_TOKEN.test(t) ? transposeChord(t, steps, preferFlats) : t));
       }
       return withBrackets;
     })
