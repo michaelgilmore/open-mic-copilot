@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/_authenticated/edit/$id")({
-  head: () => ({ meta: [{ title: "Edit Song — Setlist" }, { name: "description", content: "Add or edit a song." }] }),
+  head: () => ({ meta: [{ title: "Edit Song — Open Mic Copilot" }, { name: "description", content: "Add or edit a song." }] }),
   component: EditSong,
 });
 

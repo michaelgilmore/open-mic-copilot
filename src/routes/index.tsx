@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Setlist — Your open mic songbook" },
+      { title: "Open Mic Copilot — Your open mic songbook" },
       { name: "description", content: "Keep lyrics, chords, tempo and setlists in one place. Transpose by half steps and auto-scroll on stage." },
-      { property: "og:title", content: "Setlist — Your open mic songbook" },
+      { property: "og:title", content: "Open Mic Copilot — Your open mic songbook" },
       { property: "og:description", content: "Lyrics, chords, transposing, auto-scroll and setlists for solo performers." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

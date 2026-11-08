@@ -83,10 +83,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Setlist — Song & Setlist Organizer" },
+      { title: "Open Mic Copilot — Song & Setlist Organizer" },
       { name: "description", content: "Organize songs, chords, lyrics and setlists for open mics." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Setlist — Song & Setlist Organizer" },
+      { property: "og:title", content: "Open Mic Copilot — Song & Setlist Organizer" },
       { property: "og:description", content: "Organize songs, chords, lyrics and setlists for open mics." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

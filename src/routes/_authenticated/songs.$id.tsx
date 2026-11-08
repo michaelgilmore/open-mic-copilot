@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 
 export const Route = createFileRoute("/_authenticated/songs/$id")({
-  head: () => ({ meta: [{ title: "Song — Setlist" }, { name: "description", content: "View and perform a song." }] }),
+  head: () => ({ meta: [{ title: "Song — Open Mic Copilot" }, { name: "description", content: "View and perform a song." }] }),
   component: SongView,
 });
 

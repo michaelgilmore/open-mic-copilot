@@ -21,7 +21,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-20 border-b border-border bg-background/85 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center gap-2 px-4 py-3">
           <span className="mr-auto text-xl font-extrabold tracking-tight">
-            Set<span className="text-primary">list</span>
+            Open Mic <span className="text-primary">Copilot</span>
           </span>
           <Link to="/songs" className={tab} activeProps={{ className: "bg-secondary text-foreground" }}>
             <Music className="size-4" /> <span className="hidden sm:inline">Songs</span>

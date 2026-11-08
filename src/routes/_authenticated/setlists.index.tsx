@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/_authenticated/setlists/")({
-  head: () => ({ meta: [{ title: "Setlists — Setlist" }, { name: "description", content: "Your setlists." }] }),
+  head: () => ({ meta: [{ title: "Setlists — Open Mic Copilot" }, { name: "description", content: "Your setlists." }] }),
   component: SetlistsPage,
 });
 
