@@ -77,6 +77,33 @@ export type Database = {
         }
         Relationships: []
       }
+      song_library: {
+        Row: {
+          artist: string
+          chords: string
+          id: string
+          song_key: string
+          tempo: number | null
+          title: string
+        }
+        Insert: {
+          artist: string
+          chords?: string
+          id?: string
+          song_key: string
+          tempo?: number | null
+          title: string
+        }
+        Update: {
+          artist?: string
+          chords?: string
+          id?: string
+          song_key?: string
+          tempo?: number | null
+          title?: string
+        }
+        Relationships: []
+      }
       songs: {
         Row: {
           artist: string
