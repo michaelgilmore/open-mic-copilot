@@ -1,10 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Minus, Plus, Play, Pause, Pencil, Trash2, RotateCcw, ArrowLeft } from "lucide-react";
+import { Minus, Plus, Play, Pause, Pencil, Trash2, RotateCcw, ArrowLeft, Save } from "lucide-react";
 import { toast } from "sonner";
 import { useDeleteSong, useSaveSong, useSong } from "@/lib/data";
 import { setFlasherTempo } from "@/lib/tempo-store";
 import { prefersFlats, stepsBetween, transposeKey, transposeText } from "@/lib/transpose";
+import { hasUnsavedKeyOrTempo, type KeyTempoDraft } from "@/lib/song-draft";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 
@@ -22,12 +24,18 @@ function SongView() {
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(30);
   const [fontSize, setFontSize] = useState(18);
+  // Pending key/tempo edits — only written to the song when Save is pressed.
+  const [draft, setDraft] = useState<KeyTempoDraft>({ your_key: null, your_tempo: null });
   const speedRef = useRef(speed);
   speedRef.current = speed;
 
-  useEffect(() => { if (song) setSpeed(song.scroll_speed); }, [song]);
+  useEffect(() => {
+    if (!song) return;
+    setSpeed(song.scroll_speed);
+    setDraft({ your_key: song.your_key ?? null, your_tempo: song.your_tempo ?? null });
+  }, [song]);
 
-  const flasherTempo = song ? (song.your_tempo ?? song.tempo) : null;
+  const flasherTempo = song ? (draft.your_tempo ?? song.tempo) : null;
   useEffect(() => {
     setFlasherTempo(flasherTempo);
     return () => setFlasherTempo(null);
@@ -52,32 +60,53 @@ function SongView() {
   }, [playing]);
 
   if (isLoading || !song) return <p className="text-muted-foreground">Loading…</p>;
-  const yourKey = song.your_key ?? song.song_key;
+
+  const stored: KeyTempoDraft = { your_key: song.your_key ?? null, your_tempo: song.your_tempo ?? null };
+  const dirty = hasUnsavedKeyOrTempo(stored, draft);
+  const yourKey = draft.your_key ?? song.song_key;
   const steps = stepsBetween(song.song_key, yourKey);
   const flats = prefersFlats(yourKey);
-  const yourTempo = song.your_tempo ?? song.tempo;
+  const yourTempo = draft.your_tempo ?? song.tempo;
 
   function commitSpeed(v: number) {
     save.mutate({ id, values: { title: song!.title, scroll_speed: v } });
   }
 
   function changeKey(delta: number) {
-    const next = transposeKey(yourKey, delta);
-    save.mutate({ id, values: { title: song!.title, your_key: next === song!.song_key ? null : next } });
+    setDraft((d) => {
+      const current = d.your_key ?? song!.song_key;
+      const next = transposeKey(current, delta);
+      return { ...d, your_key: next === song!.song_key ? null : next };
+    });
   }
 
   function resetKey() {
-    save.mutate({ id, values: { title: song!.title, your_key: null } });
+    setDraft((d) => ({ ...d, your_key: null }));
   }
 
   function changeTempo(delta: number) {
-    const base = yourTempo ?? 120;
-    const next = Math.min(300, Math.max(30, base + delta));
-    save.mutate({ id, values: { title: song!.title, your_tempo: next === song!.tempo ? null : next } });
+    setDraft((d) => {
+      const base = d.your_tempo ?? song!.tempo ?? 120;
+      const next = Math.min(300, Math.max(30, base + delta));
+      return { ...d, your_tempo: next === song!.tempo ? null : next };
+    });
   }
 
   function resetTempo() {
-    save.mutate({ id, values: { title: song!.title, your_tempo: null } });
+    setDraft((d) => ({ ...d, your_tempo: null }));
+  }
+
+  async function saveChanges() {
+    if (!dirty || save.isPending) return;
+    try {
+      await save.mutateAsync({
+        id,
+        values: { title: song!.title, your_key: draft.your_key, your_tempo: draft.your_tempo },
+      });
+      toast.success("Saved key & tempo");
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
   }
 
   async function remove() {
@@ -95,9 +124,9 @@ function SongView() {
           <h1 className="text-3xl font-extrabold leading-tight sm:text-4xl">{song.title}</h1>
           <p className="text-muted-foreground">
             {song.artist} · {yourKey}
-            {song.your_key && song.your_key !== song.song_key ? ` (orig ${song.song_key})` : ""}
+            {steps !== 0 ? ` (orig ${song.song_key})` : ""}
             {yourTempo ? ` · ${yourTempo} bpm` : ""}
-            {song.your_tempo && song.tempo && song.your_tempo !== song.tempo ? ` (orig ${song.tempo})` : ""}
+            {yourTempo && song.tempo && yourTempo !== song.tempo ? ` (orig ${song.tempo})` : ""}
           </p>
         </div>
         <Button asChild variant="outline" size="icon"><Link to="/edit/$id" params={{ id }} aria-label="Edit"><Pencil /></Link></Button>
@@ -134,10 +163,10 @@ function SongView() {
             <Button variant="secondary" size="icon" onClick={() => changeTempo(-1)} aria-label="Tempo down"><Minus /></Button>
             <div className="w-20 text-center">
               <div className="font-mono text-lg font-semibold">{yourTempo ?? "—"}</div>
-              <div className="text-[10px] text-muted-foreground">{song.your_tempo && song.tempo && song.your_tempo !== song.tempo ? `orig ${song.tempo}` : "bpm"}</div>
+              <div className="text-[10px] text-muted-foreground">{yourTempo && song.tempo && yourTempo !== song.tempo ? `orig ${song.tempo}` : "bpm"}</div>
             </div>
             <Button variant="secondary" size="icon" onClick={() => changeTempo(1)} aria-label="Tempo up"><Plus /></Button>
-            {song.your_tempo && song.your_tempo !== song.tempo && <Button variant="ghost" size="icon" onClick={resetTempo} aria-label="Reset tempo"><RotateCcw /></Button>}
+            {draft.your_tempo != null && <Button variant="ghost" size="icon" onClick={resetTempo} aria-label="Reset tempo"><RotateCcw /></Button>}
           </div>
           <div className="flex min-w-[220px] flex-1 items-center gap-3">
             <Button size="icon" className="size-11 rounded-full" onClick={() => setPlaying(!playing)} aria-label={playing ? "Stop scrolling" : "Start scrolling"}>
@@ -151,6 +180,15 @@ function SongView() {
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="sm" onClick={() => setFontSize(Math.max(12, fontSize - 2))}>A−</Button>
             <Button variant="ghost" size="sm" onClick={() => setFontSize(Math.min(40, fontSize + 2))}>A+</Button>
+          </div>
+          <div className="flex flex-col items-end gap-0.5">
+            <Button size="sm" onClick={saveChanges} disabled={!dirty || save.isPending} aria-label="Save key and tempo for this song">
+              <Save />
+              {save.isPending ? "Saving…" : "Save"}
+            </Button>
+            <span className={cn("text-[10px]", dirty ? "text-chord" : "text-muted-foreground")}>
+              {dirty ? "unsaved changes" : "key & tempo saved"}
+            </span>
           </div>
         </div>
       </div>
