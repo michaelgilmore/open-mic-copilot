@@ -132,3 +132,22 @@
     font-family: var(--font-sans);
   }
 }
+
+@keyframes beat-flash {
+  0% {
+    opacity: 1;
+    transform: scale(1.35);
+    box-shadow: 0 0 12px 2px currentColor;
+  }
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+    box-shadow: none;
+  }
+}
+
+.beat-flash {
+  animation-name: beat-flash;
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+}

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Minus, Plus, Play, Pause, Pencil, Trash2, RotateCcw, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useDeleteSong, useSaveSong, useSong } from "@/lib/data";
+import { setFlasherTempo } from "@/lib/tempo-store";
 import { prefersFlats, stepsBetween, transposeKey, transposeText } from "@/lib/transpose";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -25,6 +26,12 @@ function SongView() {
   speedRef.current = speed;
 
   useEffect(() => { if (song) setSpeed(song.scroll_speed); }, [song]);
+
+  const flasherTempo = song ? (song.your_tempo ?? song.tempo) : null;
+  useEffect(() => {
+    setFlasherTempo(flasherTempo);
+    return () => setFlasherTempo(null);
+  }, [flasherTempo]);
 
   useEffect(() => {
     if (!playing) return;

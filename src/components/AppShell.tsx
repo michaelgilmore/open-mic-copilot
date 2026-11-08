@@ -4,6 +4,7 @@ import { Music, ListMusic, LogOut } from "lucide-react";
 import type { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { TempoFlasher } from "@/components/TempoFlasher";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
@@ -19,10 +20,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-20 border-b border-border bg-background/85 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center gap-2 px-4 py-3">
+        <div className="relative mx-auto flex max-w-5xl items-center gap-2 px-4 py-3">
           <span className="mr-auto text-xl font-extrabold tracking-tight">
             Open Mic <span className="text-primary">Copilot</span>
           </span>
+          <div className="absolute left-1/2 -translate-x-1/2">
+            <TempoFlasher />
+          </div>
           <Link to="/songs" className={tab} activeProps={{ className: "bg-secondary text-foreground" }}>
             <Music className="size-4" /> <span className="hidden sm:inline">Songs</span>
           </Link>
