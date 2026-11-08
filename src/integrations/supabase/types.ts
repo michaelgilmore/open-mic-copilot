@@ -107,6 +107,7 @@ export type Database = {
       songs: {
         Row: {
           artist: string
+          capo: number | null
           chords: string
           created_at: string
           id: string
@@ -118,11 +119,13 @@ export type Database = {
           title: string
           updated_at: string
           user_id: string
+          your_capo: number | null
           your_key: string | null
           your_tempo: number | null
         }
         Insert: {
           artist?: string
+          capo?: number | null
           chords?: string
           created_at?: string
           id?: string
@@ -134,11 +137,13 @@ export type Database = {
           title: string
           updated_at?: string
           user_id?: string
+          your_capo?: number | null
           your_key?: string | null
           your_tempo?: number | null
         }
         Update: {
           artist?: string
+          capo?: number | null
           chords?: string
           created_at?: string
           id?: string
@@ -150,6 +155,7 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+          your_capo?: number | null
           your_key?: string | null
           your_tempo?: number | null
         }
