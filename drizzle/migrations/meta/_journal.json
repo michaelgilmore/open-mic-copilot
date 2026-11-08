@@ -15,6 +15,13 @@
       "when": 1794150259585,
       "tag": "0001_starter_song_library",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794151592874,
+      "tag": "0002_add_your_key_and_tempo_to_songs",
+      "breakpoints": true
     }
   ]
 }

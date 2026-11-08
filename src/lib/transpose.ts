@@ -35,6 +35,20 @@ export function prefersFlats(key: string): boolean {
   return FLAT_KEYS.has(key) || /^[A-G]b/.test(key);
 }
 
+/** Half steps from one key to another, in [-6, 6]. Returns 0 when either key is unparseable. */
+export function stepsBetween(fromKey: string, toKey: string): number {
+  const from = fromKey.match(/^([A-G][#b]?)/);
+  const to = toKey.match(/^([A-G][#b]?)/);
+  if (!from || !to) return 0;
+  const a = noteIndex(from[1]!);
+  const b = noteIndex(to[1]!);
+  if (a < 0 || b < 0) return 0;
+  let d = (b - a) % 12;
+  if (d > 6) d -= 12;
+  if (d < -6) d += 12;
+  return d;
+}
+
 const CHORD_TOKEN =
   /^[A-G][#b]?(m|maj|min|dim|aug|sus|add)?\d*(sus\d|add\d|maj\d|b\d|#\d)*(\/[A-G][#b]?)?$/;
 

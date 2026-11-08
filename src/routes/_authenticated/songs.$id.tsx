@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Minus, Plus, Play, Pause, Pencil, Trash2, RotateCcw, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useDeleteSong, useSaveSong, useSong } from "@/lib/data";
-import { prefersFlats, transposeKey, transposeText } from "@/lib/transpose";
+import { prefersFlats, stepsBetween, transposeKey, transposeText } from "@/lib/transpose";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 
@@ -18,7 +18,6 @@ function SongView() {
   const save = useSaveSong();
   const del = useDeleteSong();
   const navigate = useNavigate();
-  const [steps, setSteps] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(30);
   const [fontSize, setFontSize] = useState(18);
@@ -46,11 +45,32 @@ function SongView() {
   }, [playing]);
 
   if (isLoading || !song) return <p className="text-muted-foreground">Loading…</p>;
-  const flats = prefersFlats(transposeKey(song.song_key, steps));
-  const key = transposeKey(song.song_key, steps);
+  const yourKey = song.your_key ?? song.song_key;
+  const steps = stepsBetween(song.song_key, yourKey);
+  const flats = prefersFlats(yourKey);
+  const yourTempo = song.your_tempo ?? song.tempo;
 
   function commitSpeed(v: number) {
     save.mutate({ id, values: { title: song!.title, scroll_speed: v } });
+  }
+
+  function changeKey(delta: number) {
+    const next = transposeKey(yourKey, delta);
+    save.mutate({ id, values: { title: song!.title, your_key: next === song!.song_key ? null : next } });
+  }
+
+  function resetKey() {
+    save.mutate({ id, values: { title: song!.title, your_key: null } });
+  }
+
+  function changeTempo(delta: number) {
+    const base = yourTempo ?? 120;
+    const next = Math.min(300, Math.max(30, base + delta));
+    save.mutate({ id, values: { title: song!.title, your_tempo: next === song!.tempo ? null : next } });
+  }
+
+  function resetTempo() {
+    save.mutate({ id, values: { title: song!.title, your_tempo: null } });
   }
 
   async function remove() {
@@ -66,7 +86,12 @@ function SongView() {
         <Button asChild variant="ghost" size="icon"><Link to="/songs" aria-label="Back"><ArrowLeft /></Link></Button>
         <div className="min-w-0 flex-1">
           <h1 className="text-3xl font-extrabold leading-tight sm:text-4xl">{song.title}</h1>
-          <p className="text-muted-foreground">{song.artist}{song.tempo ? ` · ${song.tempo} bpm` : ""}</p>
+          <p className="text-muted-foreground">
+            {song.artist} · {yourKey}
+            {song.your_key && song.your_key !== song.song_key ? ` (orig ${song.song_key})` : ""}
+            {yourTempo ? ` · ${yourTempo} bpm` : ""}
+            {song.your_tempo && song.tempo && song.your_tempo !== song.tempo ? ` (orig ${song.tempo})` : ""}
+          </p>
         </div>
         <Button asChild variant="outline" size="icon"><Link to="/edit/$id" params={{ id }} aria-label="Edit"><Pencil /></Link></Button>
         <Button variant="ghost" size="icon" onClick={remove} aria-label="Delete"><Trash2 /></Button>
@@ -90,13 +115,22 @@ function SongView() {
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 backdrop-blur">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-5 gap-y-3 px-4 py-3">
           <div className="flex items-center gap-1">
-            <Button variant="secondary" size="icon" onClick={() => setSteps(steps - 1)} aria-label="Key down half step"><Minus /></Button>
+            <Button variant="secondary" size="icon" onClick={() => changeKey(-1)} aria-label="Key down half step"><Minus /></Button>
             <div className="w-16 text-center">
-              <div className="font-mono text-lg font-semibold text-chord">{key}</div>
-              <div className="text-[10px] text-muted-foreground">{steps === 0 ? "original" : `${steps > 0 ? "+" : ""}${steps}`}</div>
+              <div className="font-mono text-lg font-semibold text-chord">{yourKey}</div>
+              <div className="text-[10px] text-muted-foreground">{steps === 0 ? "original" : `${steps > 0 ? "+" : ""}${steps} from ${song.song_key}`}</div>
             </div>
-            <Button variant="secondary" size="icon" onClick={() => setSteps(steps + 1)} aria-label="Key up half step"><Plus /></Button>
-            {steps !== 0 && <Button variant="ghost" size="icon" onClick={() => setSteps(0)} aria-label="Reset key"><RotateCcw /></Button>}
+            <Button variant="secondary" size="icon" onClick={() => changeKey(1)} aria-label="Key up half step"><Plus /></Button>
+            {steps !== 0 && <Button variant="ghost" size="icon" onClick={resetKey} aria-label="Reset key"><RotateCcw /></Button>}
+          </div>
+          <div className="flex items-center gap-1">
+            <Button variant="secondary" size="icon" onClick={() => changeTempo(-1)} aria-label="Tempo down"><Minus /></Button>
+            <div className="w-20 text-center">
+              <div className="font-mono text-lg font-semibold">{yourTempo ?? "—"}</div>
+              <div className="text-[10px] text-muted-foreground">{song.your_tempo && song.tempo && song.your_tempo !== song.tempo ? `orig ${song.tempo}` : "bpm"}</div>
+            </div>
+            <Button variant="secondary" size="icon" onClick={() => changeTempo(1)} aria-label="Tempo up"><Plus /></Button>
+            {song.your_tempo && song.your_tempo !== song.tempo && <Button variant="ghost" size="icon" onClick={resetTempo} aria-label="Reset tempo"><RotateCcw /></Button>}
           </div>
           <div className="flex min-w-[220px] flex-1 items-center gap-3">
             <Button size="icon" className="size-11 rounded-full" onClick={() => setPlaying(!playing)} aria-label={playing ? "Stop scrolling" : "Start scrolling"}>

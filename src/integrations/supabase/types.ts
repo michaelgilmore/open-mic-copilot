@@ -118,6 +118,8 @@ export type Database = {
           title: string
           updated_at: string
           user_id: string
+          your_key: string | null
+          your_tempo: number | null
         }
         Insert: {
           artist?: string
@@ -132,6 +134,8 @@ export type Database = {
           title: string
           updated_at?: string
           user_id?: string
+          your_key?: string | null
+          your_tempo?: number | null
         }
         Update: {
           artist?: string
@@ -146,6 +150,8 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+          your_key?: string | null
+          your_tempo?: number | null
         }
         Relationships: []
       }

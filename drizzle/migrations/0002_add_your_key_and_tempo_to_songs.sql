@@ -1,0 +1,1 @@
+ALTER TABLE public.songs ADD COLUMN your_key text, ADD COLUMN your_tempo integer;
