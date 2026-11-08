@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/_authenticated/songs/")({
-  head: () => ({ meta: [{ title: "My Songs — Open Mic Copilot" }, { name: "description", content: "Your song library." }] }),
+  head: () => ({ meta: [{ title: "My Songs — Open Mic Copilot" }, { name: "description", content: "Your song library." }, { property: "og:title", content: "My Songs — Open Mic Copilot" }, { property: "og:description", content: "Browse your personal songs and chord charts." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: SongsPage,
 });
 

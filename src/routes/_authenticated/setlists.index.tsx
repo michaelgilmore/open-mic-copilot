@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/setlists/")({
-  head: () => ({ meta: [{ title: "Setlists — Open Mic Copilot" }, { name: "description", content: "Your setlists." }] }),
+  head: () => ({ meta: [{ title: "Setlists — Open Mic Copilot" }, { name: "description", content: "Your setlists." }, { property: "og:title", content: "Setlists — Open Mic Copilot" }, { property: "og:description", content: "Create and organize your open mic setlists." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: SetlistsPage,
 });
 

@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { originalCapo } from "@/lib/capo";
 
 export const Route = createFileRoute("/_authenticated/edit/$id")({
-  head: () => ({ meta: [{ title: "Edit Song — Open Mic Copilot" }, { name: "description", content: "Add or edit a song." }] }),
+  head: () => ({ meta: [{ title: "Edit Song — Open Mic Copilot" }, { name: "description", content: "Add or edit lyrics, chords, original key, tempo and capo." }, { property: "og:title", content: "Edit Song — Open Mic Copilot" }, { property: "og:description", content: "Manage your song's original key, capo and chord chart." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: EditSong,
 });
 
@@ -20,14 +21,14 @@ function EditSong() {
   const navigate = useNavigate();
   const { data: song } = useSong(id);
   const save = useSaveSong();
-  const [f, setF] = useState({ title: "", artist: "", key: "C", minor: false, tempo: "", chords: "", lyrics: "", notes: "" });
+  const [f, setF] = useState({ title: "", artist: "", key: "C", minor: false, tempo: "", capo: "0", chords: "", lyrics: "", notes: "" });
 
   useEffect(() => {
     if (song) {
       const minor = song.song_key.endsWith("m");
       setF({
         title: song.title, artist: song.artist, key: minor ? song.song_key.slice(0, -1) : song.song_key, minor,
-        tempo: song.tempo?.toString() ?? "", chords: song.chords, lyrics: song.lyrics, notes: song.notes,
+        tempo: song.tempo?.toString() ?? "", capo: String(originalCapo(song.capo, song.chords)), chords: song.chords, lyrics: song.lyrics, notes: song.notes,
       });
     }
   }, [song]);
@@ -42,7 +43,7 @@ function EditSong() {
         id: isNew ? undefined : id,
         values: {
           title: f.title.trim(), artist: f.artist.trim(), song_key: f.key + (f.minor ? "m" : ""),
-          tempo: f.tempo ? parseInt(f.tempo, 10) : null, chords: f.chords, lyrics: f.lyrics, notes: f.notes,
+          tempo: f.tempo ? parseInt(f.tempo, 10) : null, capo: Number(f.capo), chords: f.chords.replace(/\(capo\s+\d+\)/gi, `(capo ${Number(f.capo)})`), lyrics: f.lyrics, notes: f.notes,
         },
       });
       toast.success("Saved");
@@ -60,7 +61,7 @@ function EditSong() {
         <div><Label htmlFor="t">Title</Label><Input id="t" required value={f.title} onChange={set("title")} /></div>
         <div><Label htmlFor="a">Artist</Label><Input id="a" value={f.artist} onChange={set("artist")} /></div>
         <div>
-          <Label>Key</Label>
+          <Label>Original sounding key</Label>
           <div className="flex gap-2">
             <select className={select} value={f.key} onChange={set("key")} aria-label="Key">
               {KEYS.map((k) => <option key={k}>{k}</option>)}
@@ -71,6 +72,7 @@ function EditSong() {
           </div>
         </div>
         <div><Label htmlFor="bpm">Tempo (BPM)</Label><Input id="bpm" type="number" min={20} max={300} value={f.tempo} onChange={set("tempo")} /></div>
+        <div><Label htmlFor="capo">Original chord-chart capo</Label><Input id="capo" type="number" required min={0} max={12} step={1} value={f.capo} onChange={set("capo")} /></div>
       </div>
       <div>
         <Label htmlFor="c">Chord progression</Label>

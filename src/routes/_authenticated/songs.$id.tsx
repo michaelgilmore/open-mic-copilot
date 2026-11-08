@@ -4,13 +4,14 @@ import { Minus, Plus, Play, Pause, Pencil, Trash2, RotateCcw, ArrowLeft, Save } 
 import { toast } from "sonner";
 import { useDeleteSong, useSaveSong, useSong } from "@/lib/data";
 import { setFlasherTempo } from "@/lib/tempo-store";
-import { prefersFlats, stepsBetween, transposeKey, transposeText } from "@/lib/transpose";
+import { stepsBetween, transposeKey } from "@/lib/transpose";
+import { originalCapo, capoChordText } from "@/lib/capo";
 import { hasUnsavedKeyOrTempo, type KeyTempoDraft } from "@/lib/song-draft";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/songs/$id")({
-  head: () => ({ meta: [{ title: "Song — Open Mic Copilot" }, { name: "description", content: "View and perform a song." }] }),
+  head: () => ({ meta: [{ title: "Song — Open Mic Copilot" }, { name: "description", content: "Perform with lyrics, chord shapes, capo, key and tempo settings." }, { property: "og:title", content: "Song — Open Mic Copilot" }, { property: "og:description", content: "Your song's lyrics, capo-aware chords and performance settings." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: SongView,
 });
 
@@ -24,14 +25,14 @@ function SongView() {
   const [speed, setSpeed] = useState(30);
   const [fontSize, setFontSize] = useState(18);
   // Pending key/tempo edits — only written to the song when Save is pressed.
-  const [draft, setDraft] = useState<KeyTempoDraft>({ your_key: null, your_tempo: null });
+  const [draft, setDraft] = useState<KeyTempoDraft>({ your_key: null, your_tempo: null, your_capo: null });
   const speedRef = useRef(speed);
   speedRef.current = speed;
 
   useEffect(() => {
     if (!song) return;
     setSpeed(song.scroll_speed);
-    setDraft({ your_key: song.your_key ?? null, your_tempo: song.your_tempo ?? null });
+    setDraft({ your_key: song.your_key ?? null, your_tempo: song.your_tempo ?? null, your_capo: song.your_capo ?? null });
   }, [song]);
 
   const flasherTempo = song ? (draft.your_tempo ?? song.tempo) : null;
@@ -60,15 +61,17 @@ function SongView() {
 
   if (isLoading || !song) return <p className="text-muted-foreground">Loading…</p>;
 
-  const stored: KeyTempoDraft = { your_key: song.your_key ?? null, your_tempo: song.your_tempo ?? null };
+  const currentSong = song;
+  const stored: KeyTempoDraft = { your_key: song.your_key ?? null, your_tempo: song.your_tempo ?? null, your_capo: song.your_capo ?? null };
   const dirty = hasUnsavedKeyOrTempo(stored, draft);
   const yourKey = draft.your_key ?? song.song_key;
   const steps = stepsBetween(song.song_key, yourKey);
-  const flats = prefersFlats(yourKey);
+  const baseCapo = originalCapo(song.capo, song.chords);
+  const yourCapo = draft.your_capo ?? baseCapo;
   const yourTempo = draft.your_tempo ?? song.tempo;
 
   function commitSpeed(v: number) {
-    save.mutate({ id, values: { title: song!.title, scroll_speed: v } });
+    save.mutate({ id, values: { title: currentSong.title, scroll_speed: v } });
   }
 
   function changeSpeed(delta: number) {
@@ -79,9 +82,9 @@ function SongView() {
 
   function changeKey(delta: number) {
     setDraft((d) => {
-      const current = d.your_key ?? song!.song_key;
+      const current = d.your_key ?? currentSong.song_key;
       const next = transposeKey(current, delta);
-      return { ...d, your_key: next === song!.song_key ? null : next };
+      return { ...d, your_key: next === currentSong.song_key ? null : next };
     });
   }
 
@@ -91,9 +94,9 @@ function SongView() {
 
   function changeTempo(delta: number) {
     setDraft((d) => {
-      const base = d.your_tempo ?? song!.tempo ?? 120;
+      const base = d.your_tempo ?? currentSong.tempo ?? 120;
       const next = Math.min(300, Math.max(30, base + delta));
-      return { ...d, your_tempo: next === song!.tempo ? null : next };
+      return { ...d, your_tempo: next === currentSong.tempo ? null : next };
     });
   }
 
@@ -101,21 +104,28 @@ function SongView() {
     setDraft((d) => ({ ...d, your_tempo: null }));
   }
 
+  function changeCapo(delta: number) {
+    setDraft((d) => {
+      const next = Math.min(12, Math.max(0, (d.your_capo ?? baseCapo) + delta));
+      return { ...d, your_capo: next === baseCapo ? null : next };
+    });
+  }
+
   async function saveChanges() {
     if (!dirty || save.isPending) return;
     try {
       await save.mutateAsync({
         id,
-        values: { title: song!.title, your_key: draft.your_key, your_tempo: draft.your_tempo },
+        values: { title: currentSong.title, your_key: draft.your_key, your_tempo: draft.your_tempo, your_capo: draft.your_capo ?? null },
       });
-      toast.success("Saved key & tempo");
+      toast.success("Saved key, tempo & capo");
     } catch (err) {
       toast.error((err as Error).message);
     }
   }
 
   async function remove() {
-    if (!confirm(`Delete "${song!.title}"?`)) return;
+    if (!confirm(`Delete "${currentSong.title}"?`)) return;
     await del.mutateAsync(id);
     toast.success("Song deleted");
     navigate({ to: "/songs" });
@@ -132,6 +142,7 @@ function SongView() {
             {steps !== 0 ? ` (orig ${song.song_key})` : ""}
             {yourTempo ? ` · ${yourTempo} bpm` : ""}
             {yourTempo && song.tempo && yourTempo !== song.tempo ? ` (orig ${song.tempo})` : ""}
+            {` · Capo ${yourCapo}`}
           </p>
         </div>
         <Button asChild variant="outline" size="icon"><Link to="/edit/$id" params={{ id }} aria-label="Edit"><Pencil /></Link></Button>
@@ -142,27 +153,36 @@ function SongView() {
 
       {song.chords && (
         <section className="sticky top-[60px] z-10 -mx-4 mt-6 border-b border-border bg-background/95 px-4 pb-3 backdrop-blur">
-          <h2 className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Chords</h2>
-          <pre className="mt-2 whitespace-pre-wrap font-mono font-semibold text-chord" style={{ fontSize }}>{transposeText(song.chords, steps, flats)}</pre>
+          <h2 className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Chords · Capo {yourCapo}</h2>
+          <pre className="mt-2 whitespace-pre-wrap font-mono font-semibold text-chord" style={{ fontSize }}>{capoChordText(song.chords, song.song_key, yourKey, baseCapo, yourCapo)}</pre>
         </section>
       )}
       <section className="mt-6">
         <h2 className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Lyrics</h2>
         <pre className="mt-2 whitespace-pre-wrap font-mono leading-relaxed" style={{ fontSize }}>
-          {renderLyrics(transposeText(song.lyrics, steps, flats))}
+          {renderLyrics(capoChordText(song.lyrics, song.song_key, yourKey, baseCapo, yourCapo))}
         </pre>
       </section>
 
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-5 gap-y-3 px-4 py-3">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-3 gap-y-3 px-4 py-3">
           <div className="flex items-center gap-1">
             <Button variant="secondary" size="icon" onClick={() => changeKey(-1)} aria-label="Key down half step"><Minus /></Button>
             <div className="w-16 text-center">
               <div className="font-mono text-lg font-semibold text-chord">{yourKey}</div>
-              <div className="text-[10px] text-muted-foreground">{steps === 0 ? "original" : `${steps > 0 ? "+" : ""}${steps} from ${song.song_key}`}</div>
+              <div className="text-[10px] text-muted-foreground">{steps === 0 ? "key · original" : `${steps > 0 ? "+" : ""}${steps} from ${song.song_key}`}</div>
             </div>
             <Button variant="secondary" size="icon" onClick={() => changeKey(1)} aria-label="Key up half step"><Plus /></Button>
             {steps !== 0 && <Button variant="ghost" size="icon" onClick={resetKey} aria-label="Reset key"><RotateCcw /></Button>}
+          </div>
+          <div className="flex items-center gap-1">
+            <Button variant="secondary" size="icon" onClick={() => changeCapo(-1)} disabled={yourCapo === 0} aria-label="Capo down"><Minus /></Button>
+            <div className="w-12 text-center">
+              <div className="font-mono text-lg font-semibold">{yourCapo}</div>
+              <div className="text-[10px] text-muted-foreground">{yourCapo === baseCapo ? "capo" : `orig ${baseCapo}`}</div>
+            </div>
+            <Button variant="secondary" size="icon" onClick={() => changeCapo(1)} disabled={yourCapo === 12} aria-label="Capo up"><Plus /></Button>
+            {draft.your_capo != null && <Button variant="ghost" size="icon" onClick={() => setDraft((d) => ({ ...d, your_capo: null }))} aria-label="Reset capo"><RotateCcw /></Button>}
           </div>
           <div className="flex items-center gap-1">
             <Button variant="secondary" size="icon" onClick={() => changeTempo(-1)} aria-label="Tempo down"><Minus /></Button>
@@ -189,12 +209,12 @@ function SongView() {
             <Button variant="ghost" size="sm" onClick={() => setFontSize(Math.min(40, fontSize + 2))}>A+</Button>
           </div>
           <div className="flex items-center gap-2">
-            <Button size="sm" onClick={saveChanges} disabled={!dirty || save.isPending} aria-label="Save key and tempo for this song">
+            <Button size="sm" onClick={saveChanges} disabled={!dirty || save.isPending} aria-label="Save key, tempo and capo for this song">
               <Save />
               {save.isPending ? "Saving…" : "Save"}
             </Button>
             <span className={cn("text-[10px]", dirty ? "text-chord" : "text-muted-foreground")}>
-              {dirty ? "unsaved changes" : "key & tempo saved"}
+              {dirty ? "unsaved changes" : "saved"}
             </span>
           </div>
         </div>
