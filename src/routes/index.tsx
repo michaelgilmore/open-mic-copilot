@@ -26,6 +26,7 @@ function Index() {
   return (
     <div className="mx-auto flex min-h-screen max-w-4xl flex-col justify-center px-6 py-16">
       <p className="font-mono text-sm uppercase tracking-widest text-primary">for open mic night</p>
+      <p className="mt-3 text-2xl font-extrabold sm:text-3xl">Open Mic <span className="text-primary">Copilot</span></p>
       <h1 className="mt-3 text-5xl font-extrabold leading-tight tracking-tight sm:text-7xl">
         Every song.<br />Every set.<br /><span className="text-primary">Ready to play.</span>
       </h1>

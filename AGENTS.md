@@ -30,6 +30,7 @@ use the editor.
 <!-- LOVABLE:END -->
 
 ## Project rules
+- Feedback is stored with authenticated insert/read-own policies in feedback_submissions; why: reports must persist without exposing other users' submissions, even before email sending is configured.
 - Data access goes through the browser Supabase client with per-user RLS (user_id = auth.uid()) on songs, setlists, setlist_songs; why: each signed-in user must only see their own entries.
 - Transposition logic lives in src/lib/transpose.ts with tests in src/test/transpose.test.ts; why: key changes must stay correct for chord lines and inline [chord] markers.
 - New accounts get starter songs copied from public.song_library by a signup trigger on auth.users; why: songs are per-user, so shared seed data must be copied into each user's own rows.

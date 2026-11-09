@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Music, ListMusic, LogOut } from "lucide-react";
+import { Music, ListMusic, LogOut, Settings } from "lucide-react";
 import type { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
           <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sign out">
             <LogOut />
+          </Button>
+          <Button asChild variant="ghost" size="icon">
+            <Link to="/settings" aria-label="Settings" title="Settings"><Settings /></Link>
           </Button>
         </div>
       </header>

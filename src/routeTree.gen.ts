@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedEditIdRouteImport } from './routes/_authenticated/edit.$id'
 import { Route as AuthenticatedSetlistsIndexRouteImport } from './routes/_authenticated/setlists.index'
 import { Route as AuthenticatedSetlistsIdRouteImport } from './routes/_authenticated/setlists.$id'
@@ -31,6 +32,11 @@ const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedEditIdRoute = AuthenticatedEditIdRouteImport.update({
   id: '/edit/$id',
@@ -62,6 +68,7 @@ const AuthenticatedSongsIdRoute = AuthenticatedSongsIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/edit/$id': typeof AuthenticatedEditIdRoute
   '/setlists/$id': typeof AuthenticatedSetlistsIdRoute
   '/songs/$id': typeof AuthenticatedSongsIdRoute
@@ -71,6 +78,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/edit/$id': typeof AuthenticatedEditIdRoute
   '/setlists/$id': typeof AuthenticatedSetlistsIdRoute
   '/songs/$id': typeof AuthenticatedSongsIdRoute
@@ -82,6 +90,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/edit/$id': typeof AuthenticatedEditIdRoute
   '/_authenticated/setlists/$id': typeof AuthenticatedSetlistsIdRoute
   '/_authenticated/songs/$id': typeof AuthenticatedSongsIdRoute
@@ -93,6 +102,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/settings'
     | '/edit/$id'
     | '/setlists/$id'
     | '/songs/$id'
@@ -102,6 +112,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/settings'
     | '/edit/$id'
     | '/setlists/$id'
     | '/songs/$id'
@@ -112,6 +123,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/settings'
     | '/_authenticated/edit/$id'
     | '/_authenticated/setlists/$id'
     | '/_authenticated/songs/$id'
@@ -147,6 +159,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/edit/$id': {
       id: '/_authenticated/edit/$id'
@@ -187,6 +206,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedEditIdRoute: typeof AuthenticatedEditIdRoute
   AuthenticatedSetlistsIdRoute: typeof AuthenticatedSetlistsIdRoute
   AuthenticatedSongsIdRoute: typeof AuthenticatedSongsIdRoute
@@ -195,6 +215,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedEditIdRoute: AuthenticatedEditIdRoute,
   AuthenticatedSetlistsIdRoute: AuthenticatedSetlistsIdRoute,
   AuthenticatedSongsIdRoute: AuthenticatedSongsIdRoute,
