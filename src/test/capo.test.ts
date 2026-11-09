@@ -33,3 +33,9 @@ describe("capo review fixes", () => {
   it("raising capo 3 to 5 keeps F sounding with C shapes", () =>
     expect(capoChordText("D Dsus4 D A (capo 3)", "F", "F", 3, 5)).toBe("C Csus4 C G (capo 5)"));
 });
+
+describe("changing the chart capo on the edit screen", () => {
+  it("keeps Perfect sounding in Ab: G shapes at capo 1 become Ab shapes at no capo", () => {
+    expect(capoChordText("G Em C D (capo 1)", "Ab", "Ab", 1, 0)).toBe("Ab Fm Db Eb (capo 0)");
+  });
+});
