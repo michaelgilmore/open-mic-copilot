@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { originalCapo, shapeKey, CAPO_MAX } from "@/lib/capo";
+import { originalCapo, shapeKey, capoChordText, CAPO_MAX } from "@/lib/capo";
 
 export const Route = createFileRoute("/_authenticated/edit/$id")({
   head: () => ({ meta: [{ title: "Edit Song — Open Mic Copilot" }, { name: "description", content: "Add or edit lyrics, chords, original key, tempo and capo." }, { property: "og:title", content: "Edit Song — Open Mic Copilot" }, { property: "og:description", content: "Manage your song's original key, capo and chord chart." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -74,7 +74,12 @@ function EditSong() {
         <div><Label htmlFor="bpm">Tempo (BPM)</Label><Input id="bpm" type="number" min={20} max={300} value={f.tempo} onChange={set("tempo")} /></div>
         <div>
           <Label htmlFor="capo">Original chord-chart capo</Label>
-          <select id="capo" className={select + " w-full"} value={f.capo} onChange={set("capo")}>
+          <select id="capo" className={select + " w-full"} value={f.capo} onChange={(e) => {
+            // Keep the sounding key: rewrite chord shapes in the chart and lyrics for the new capo.
+            const key = f.key + (f.minor ? "m" : "");
+            const from = Number(f.capo), to = Number(e.target.value);
+            setF({ ...f, capo: e.target.value, chords: capoChordText(f.chords, key, key, from, to), lyrics: capoChordText(f.lyrics, key, key, from, to) });
+          }}>
             <option value="0">No capo</option>
             {Array.from({ length: CAPO_MAX }, (_, i) => i + 1).map((n) => <option key={n} value={String(n)}>{n}</option>)}
           </select>
