@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { originalCapo } from "@/lib/capo";
 import { useState } from "react";
 import { ArrowDown, ArrowUp, ArrowLeft, Plus, Trash2, X, ArrowLeftRight, Shuffle } from "lucide-react";
 import { toast } from "sonner";
@@ -100,7 +101,7 @@ function SetlistPage() {
             <span className="w-6 text-center font-mono text-sm text-primary">{idx + 1}</span>
             <Link to="/songs/$id" params={{ id: it.song.id }} className="min-w-0 flex-1">
               <div className="truncate font-semibold">{it.song.title}</div>
-              <div className="truncate text-xs text-muted-foreground">{it.song.artist} · {it.song.your_key ?? it.song.song_key}</div>
+              <div className="truncate text-xs text-muted-foreground">{it.song.artist} · {it.song.your_key ?? it.song.song_key}{(it.song.your_capo ?? originalCapo(it.song.capo, it.song.chords)) ? ` · Capo ${it.song.your_capo ?? originalCapo(it.song.capo, it.song.chords)}` : ""}</div>
             </Link>
             <Button variant="ghost" size="icon" disabled={idx === 0} onClick={() => move(idx, -1)} aria-label="Move up"><ArrowUp /></Button>
             <Button variant="ghost" size="icon" disabled={idx === items.length - 1} onClick={() => move(idx, 1)} aria-label="Move down"><ArrowDown /></Button>

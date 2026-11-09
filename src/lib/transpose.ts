@@ -65,10 +65,12 @@ export function transposeText(text: string, steps: number, preferFlats = false):
       const withBrackets = line.replace(/\[([^\]]+)\]/g, (_, c) => `[${transposeChord(c, steps, preferFlats)}]`);
       // Capo annotations describe the guitar setup, not chord tokens.
       // Ignore them when recognizing a chord line, but preserve them verbatim.
-      const chordLine = line.replace(/\(capo\s+\d+\)/gi, "");
+      // Also ignore section labels ("Verse:") and parenthetical notes ("(open tuning)").
+      const chordLine = line.replace(/\([^)]*\)/g, "").replace(/^\s*[A-Za-z][\w ]*:\s*/, "");
       const tokens = chordLine.trim().split(/[\s|]+/).filter(Boolean);
-      if (tokens.length && tokens.every((t) => CHORD_TOKEN.test(t) || t === "-" || /^x\d$/.test(t))) {
-        return line.replace(/\(capo\s+\d+\)|[^\s|]+/gi, (t) => (CHORD_TOKEN.test(t) ? transposeChord(t, steps, preferFlats) : t));
+      if (tokens.length && tokens.some((t) => CHORD_TOKEN.test(t)) && tokens.every((t) => CHORD_TOKEN.test(t) || t === "-" || /^x\d$/.test(t))) {
+        const label = line.match(/^\s*[A-Za-z][\w ]*:\s*/)?.[0] ?? "";
+        return label + line.slice(label.length).replace(/\([^)]*\)|[^\s|()]+/g, (t) => (CHORD_TOKEN.test(t) ? transposeChord(t, steps, preferFlats) : t));
       }
       return withBrackets;
     })

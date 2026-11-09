@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { useDeleteSong, useSaveSong, useSong } from "@/lib/data";
 import { setFlasherTempo } from "@/lib/tempo-store";
 import { stepsBetween, transposeKey } from "@/lib/transpose";
-import { originalCapo, capoChordText } from "@/lib/capo";
+import { originalCapo, capoChordText, shapeKey, CAPO_MAX } from "@/lib/capo";
 import { hasUnsavedKeyOrTempo, type KeyTempoDraft } from "@/lib/song-draft";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -69,6 +69,7 @@ function SongView() {
   const baseCapo = originalCapo(song.capo, song.chords);
   const yourCapo = draft.your_capo ?? baseCapo;
   const yourTempo = draft.your_tempo ?? song.tempo;
+  const shapes = shapeKey(yourKey, yourCapo);
 
   function commitSpeed(v: number) {
     save.mutate({ id, values: { title: currentSong.title, scroll_speed: v } });
@@ -84,7 +85,7 @@ function SongView() {
     setDraft((d) => {
       const current = d.your_key ?? currentSong.song_key;
       const next = transposeKey(current, delta);
-      return { ...d, your_key: next === currentSong.song_key ? null : next };
+      return { ...d, your_key: stepsBetween(currentSong.song_key, next) === 0 ? null : next };
     });
   }
 
@@ -106,7 +107,7 @@ function SongView() {
 
   function changeCapo(delta: number) {
     setDraft((d) => {
-      const next = Math.min(12, Math.max(0, (d.your_capo ?? baseCapo) + delta));
+      const next = Math.min(CAPO_MAX, Math.max(0, (d.your_capo ?? baseCapo) + delta));
       return { ...d, your_capo: next === baseCapo ? null : next };
     });
   }
@@ -142,7 +143,7 @@ function SongView() {
             {steps !== 0 ? ` (orig ${song.song_key})` : ""}
             {yourTempo ? ` · ${yourTempo} bpm` : ""}
             {yourTempo && song.tempo && yourTempo !== song.tempo ? ` (orig ${song.tempo})` : ""}
-            {` · Capo ${yourCapo}`}
+            {yourCapo > 0 ? ` · Capo ${yourCapo} (${shapes} shapes)` : " · No capo"}
           </p>
         </div>
         <Button asChild variant="outline" size="icon"><Link to="/edit/$id" params={{ id }} aria-label="Edit"><Pencil /></Link></Button>
@@ -153,7 +154,7 @@ function SongView() {
 
       {song.chords && (
         <section className="sticky top-[60px] z-10 -mx-4 mt-6 border-b border-border bg-background/95 px-4 pb-3 backdrop-blur">
-          <h2 className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Chords · Capo {yourCapo}</h2>
+          <h2 className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Chords · {yourCapo > 0 ? `Capo ${yourCapo} · ${shapes} shapes` : `No capo · ${shapes}`}</h2>
           <pre className="mt-2 whitespace-pre-wrap font-mono font-semibold text-chord" style={{ fontSize }}>{capoChordText(song.chords, song.song_key, yourKey, baseCapo, yourCapo)}</pre>
         </section>
       )}
@@ -179,9 +180,9 @@ function SongView() {
             <Button variant="secondary" size="icon" onClick={() => changeCapo(-1)} disabled={yourCapo === 0} aria-label="Capo down"><Minus /></Button>
             <div className="w-12 text-center">
               <div className="font-mono text-lg font-semibold">{yourCapo}</div>
-              <div className="text-[10px] text-muted-foreground">{yourCapo === baseCapo ? "capo" : `orig ${baseCapo}`}</div>
+              <div className="text-[10px] text-muted-foreground">{yourCapo === baseCapo ? `capo · ${shapes}` : `orig ${baseCapo} · ${shapes}`}</div>
             </div>
-            <Button variant="secondary" size="icon" onClick={() => changeCapo(1)} disabled={yourCapo === 12} aria-label="Capo up"><Plus /></Button>
+            <Button variant="secondary" size="icon" onClick={() => changeCapo(1)} disabled={yourCapo >= CAPO_MAX} aria-label="Capo up"><Plus /></Button>
             {draft.your_capo != null && <Button variant="ghost" size="icon" onClick={() => setDraft((d) => ({ ...d, your_capo: null }))} aria-label="Reset capo"><RotateCcw /></Button>}
           </div>
           <div className="flex items-center gap-1">

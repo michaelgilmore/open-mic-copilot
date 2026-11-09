@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { originalCapo } from "@/lib/capo";
+import { originalCapo, shapeKey, CAPO_MAX } from "@/lib/capo";
 
 export const Route = createFileRoute("/_authenticated/edit/$id")({
   head: () => ({ meta: [{ title: "Edit Song — Open Mic Copilot" }, { name: "description", content: "Add or edit lyrics, chords, original key, tempo and capo." }, { property: "og:title", content: "Edit Song — Open Mic Copilot" }, { property: "og:description", content: "Manage your song's original key, capo and chord chart." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -72,7 +72,14 @@ function EditSong() {
           </div>
         </div>
         <div><Label htmlFor="bpm">Tempo (BPM)</Label><Input id="bpm" type="number" min={20} max={300} value={f.tempo} onChange={set("tempo")} /></div>
-        <div><Label htmlFor="capo">Original chord-chart capo</Label><Input id="capo" type="number" required min={0} max={12} step={1} value={f.capo} onChange={set("capo")} /></div>
+        <div>
+          <Label htmlFor="capo">Original chord-chart capo</Label>
+          <select id="capo" className={select + " w-full"} value={f.capo} onChange={set("capo")}>
+            <option value="0">No capo</option>
+            {Array.from({ length: CAPO_MAX }, (_, i) => i + 1).map((n) => <option key={n} value={String(n)}>{n}</option>)}
+          </select>
+          <p className="mt-1 text-xs text-muted-foreground">Chart shapes: {shapeKey(f.key + (f.minor ? "m" : ""), Number(f.capo))}{Number(f.capo) ? ` with capo ${f.capo}` : ""}</p>
+        </div>
       </div>
       <div>
         <Label htmlFor="c">Chord progression</Label>

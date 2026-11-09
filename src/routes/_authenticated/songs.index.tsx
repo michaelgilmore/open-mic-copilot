@@ -40,7 +40,7 @@ function SongsPage() {
                   <div className="truncate text-sm text-muted-foreground">{s.artist || "—"}</div>
                 </div>
                 <div className="text-right font-mono text-xs text-muted-foreground">
-                  <div className="text-base font-semibold text-chord">{s.song_key}</div>
+                  <div className="text-base font-semibold text-chord">{s.your_key ?? s.song_key}</div>
                   {s.tempo ? `${s.tempo} bpm` : ""}
                 </div>
               </Link>

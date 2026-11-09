@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { originalCapo, capoChordSteps, capoChordText } from "@/lib/capo";
+import { originalCapo, capoChordSteps, capoChordText, shapeKey } from "@/lib/capo";
 
 describe("capo-aware chord shapes", () => {
   it("Perfect is Ab with G shapes at capo 1", () => {
@@ -22,4 +22,14 @@ describe("capo-aware chord shapes", () => {
   it("an explicit original capo overrides an old annotation", () => {
     expect(originalCapo(0, "G Em (capo 1)")).toBe(0);
   });
+});
+describe("capo review fixes", () => {
+  it("transposes labelled chord lines", () =>
+    expect(capoChordText("Verse: G  D  Em  C", "G", "A", 0, 0)).toBe("Verse: A  E  F#m  D"));
+  it("transposes lines with parenthetical notes", () =>
+    expect(capoChordText("C# F# (open tuning)", "C#", "D", 0, 0)).toBe("D G (open tuning)"));
+  it("Free Fallin' in F with capo 3 shows D shapes", () => expect(shapeKey("F", 3)).toBe("D"));
+  it("capo is limited to 10", () => expect(originalCapo(12, "")).toBe(10));
+  it("raising capo 3 to 5 keeps F sounding with C shapes", () =>
+    expect(capoChordText("D Dsus4 D A (capo 3)", "F", "F", 3, 5)).toBe("C Csus4 C G (capo 5)"));
 });
