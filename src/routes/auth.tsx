@@ -29,9 +29,9 @@ function AuthPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => data.user && navigate({ to: "/songs" }));
+    supabase.auth.getUser().then(({ data }) => data.user && navigate({ to: "/setlists" }));
     const { data } = supabase.auth.onAuthStateChange((e, s) => {
-      if (s && e === "SIGNED_IN") navigate({ to: "/songs" });
+      if (s && e === "SIGNED_IN") navigate({ to: "/setlists" });
     });
     return () => data.subscription.unsubscribe();
   }, [navigate]);
@@ -42,7 +42,7 @@ function AuthPage() {
     const { data, error } =
       mode === "in"
         ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin + "/songs" } });
+        : await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin + "/setlists" } });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     if (mode === "up" && !data.session) toast.success("Check your email to confirm your account.");
