@@ -1,12 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowDown, ArrowUp, ArrowLeft, Plus, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowLeft, Plus, Trash2, X, ArrowLeftRight, Shuffle } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDate, useSetlist, useSongs } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { pickRandomReplacement, replacementCandidates } from "@/lib/setlist-replacement";
 
 export const Route = createFileRoute("/_authenticated/setlists/$id")({
   head: () => ({ meta: [{ title: "Setlist Songs — Open Mic Copilot" }, { name: "description", content: "Songs in this setlist." }, { property: "og:title", content: "Setlist Songs — Open Mic Copilot" }, { property: "og:description", content: "Arrange and perform the songs in your setlist." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -19,6 +21,9 @@ function SetlistPage() {
   const { data: songs } = useSongs();
   const [adding, setAdding] = useState(false);
   const [q, setQ] = useState("");
+  const [replacingId, setReplacingId] = useState<string | null>(null);
+  const [replacementQuery, setReplacementQuery] = useState("");
+  const [replacing, setReplacing] = useState(false);
   const qc = useQueryClient();
   const navigate = useNavigate();
   const refresh = () => qc.invalidateQueries();
@@ -26,6 +31,29 @@ function SetlistPage() {
   if (!setlist) return <p className="text-muted-foreground">Loading…</p>;
   const items = setlist.items;
   const inSet = new Set(items.map((i) => i.song?.id));
+  const replacingItem = items.find((item) => item.id === replacingId);
+  const candidates = replacementCandidates(songs ?? [], items);
+  const matchingCandidates = candidates.filter((song) =>
+    `${song.title} ${song.artist}`.toLowerCase().includes(replacementQuery.toLowerCase()),
+  );
+
+  async function replaceSong(songId: string) {
+    if (!replacingId || replacing) return;
+    setReplacing(true);
+    try {
+      const { error } = await supabase.from("setlist_songs")
+        .update({ song_id: songId }).eq("id", replacingId).eq("setlist_id", id)
+        .select("id").single();
+      if (error) throw error;
+      await qc.invalidateQueries({ queryKey: ["setlist", id] });
+      setReplacingId(null);
+      toast.success("Song replaced");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not replace the song. Please try again.");
+    } finally {
+      setReplacing(false);
+    }
+  }
 
   async function add(songId: string) {
     const pos = items.length ? Math.max(...items.map((i) => i.position)) + 1 : 0;
@@ -68,7 +96,7 @@ function SetlistPage() {
 
       <ol className="mt-6 space-y-2">
         {items.map((it, idx) => it.song && (
-          <li key={it.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
+          <li key={it.id} className="flex items-center gap-1 rounded-xl border border-border bg-card p-2 sm:gap-3 sm:p-3">
             <span className="w-6 text-center font-mono text-sm text-primary">{idx + 1}</span>
             <Link to="/songs/$id" params={{ id: it.song.id }} className="min-w-0 flex-1">
               <div className="truncate font-semibold">{it.song.title}</div>
@@ -76,10 +104,39 @@ function SetlistPage() {
             </Link>
             <Button variant="ghost" size="icon" disabled={idx === 0} onClick={() => move(idx, -1)} aria-label="Move up"><ArrowUp /></Button>
             <Button variant="ghost" size="icon" disabled={idx === items.length - 1} onClick={() => move(idx, 1)} aria-label="Move down"><ArrowDown /></Button>
+            <Button variant="ghost" size="icon" title="Replace song" aria-label={`Replace ${it.song.title}`} onClick={() => { setReplacingId(it.id); setReplacementQuery(""); }}><ArrowLeftRight /></Button>
             <Button variant="ghost" size="icon" onClick={() => removeItem(it.id)} aria-label="Remove from setlist"><X /></Button>
           </li>
         ))}
       </ol>
+
+      <Dialog open={replacingId !== null} onOpenChange={(open) => { if (!open && !replacing) setReplacingId(null); }}>
+        <DialogContent className="max-h-[85dvh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Replace song</DialogTitle>
+            <DialogDescription className="break-words">{replacingItem?.song?.title} — {replacingItem?.song?.artist}</DialogDescription>
+          </DialogHeader>
+          <Button variant="outline" disabled={replacing || !candidates.length} onClick={() => {
+            const song = pickRandomReplacement(candidates);
+            if (song) void replaceSong(song.id);
+          }}><Shuffle /> {replacing ? "Replacing…" : "Pick a random song"}</Button>
+          <Input aria-label="Search replacement songs" placeholder="Search your songs" value={replacementQuery} onChange={(event) => setReplacementQuery(event.target.value)} disabled={replacing} />
+          <ul className="max-h-72 space-y-1 overflow-y-auto">
+            {matchingCandidates.map((song) => (
+              <li key={song.id}>
+                <Button variant="ghost" className="h-auto w-full justify-start gap-3 py-3 text-left" disabled={replacing} onClick={() => void replaceSong(song.id)}>
+                  <ArrowLeftRight className="shrink-0 text-primary" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-semibold">{song.title}</span>
+                    <span className="block truncate text-xs text-muted-foreground">{song.artist} · {song.your_key ?? song.song_key}</span>
+                  </span>
+                </Button>
+              </li>
+            ))}
+            {!matchingCandidates.length && <li className="py-3 text-sm text-muted-foreground">{!songs ? "Loading songs…" : !candidates.length ? "No other songs available outside this setlist." : "No matching songs."}</li>}
+          </ul>
+        </DialogContent>
+      </Dialog>
 
       {adding ? (
         <div className="mt-6 rounded-xl border border-border p-4">

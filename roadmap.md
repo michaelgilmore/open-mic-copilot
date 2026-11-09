@@ -1,4 +1,5 @@
 # Tasks
+- [x] Add and verify manual and random song replacement in setlists.
 - [x] Add home-screen app name and settings feedback form.
 - [x] Save and verify feedback submissions in the database.
 - [ ] Email feedback and new signups to help@gilmore.cc (blocked: sender domain must be configured and verified).
