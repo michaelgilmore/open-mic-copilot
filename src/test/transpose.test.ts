@@ -30,3 +30,7 @@ describe("stepsBetween", () => {
   it("enharmonics match: C to Db is 1", () => expect(stepsBetween("C", "Db")).toBe(1));
   it("unparseable keys give 0", () => expect(stepsBetween("?", "C")).toBe(0));
 });
+
+describe("section labels in brackets", () => {
+  it("leaves [Chorus] alone", () => expect(transposeText("[Chorus]\n[G]la", 2)).toBe("[Chorus]\n[A]la"));
+});

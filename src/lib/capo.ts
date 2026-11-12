@@ -1,4 +1,4 @@
-import { stepsBetween, transposeKey, transposeText, prefersFlats } from "@/lib/transpose";
+import { stepsBetween, transposeKey, transposeText, prefersFlats, detectChordKeyPc, relativeMajorPc } from "@/lib/transpose";
 
 /** Capo choices offered in the app: 0 means no capo. */
 export const CAPO_MAX = 10;
@@ -22,6 +22,17 @@ export function capoChordSteps(originalKey: string, targetKey: string, original:
 }
 
 export function capoChordText(text: string, originalKey: string, targetKey: string, original: number, selected: number): string {
-  const steps = capoChordSteps(originalKey, targetKey, original, selected);
+  let steps = capoChordSteps(originalKey, targetKey, original, selected);
+  // Confirm the chords in the text really are in the shapes the app expects.
+  // If they are written in another key, transpose from what is actually written.
+  const written = detectChordKeyPc(text);
+  const expected = relativeMajorPc(shapeKey(originalKey, original));
+  const target = relativeMajorPc(shapeKey(targetKey, selected));
+  if (written != null && expected >= 0 && target >= 0 && written !== expected) {
+    let d = (target - written) % 12;
+    if (d > 6) d -= 12;
+    if (d < -6) d += 12;
+    steps = d;
+  }
   return transposeText(text, steps, prefersFlats(shapeKey(targetKey, selected))).replace(/\(capo\s+\d+\)/gi, `(capo ${selected})`);
 }

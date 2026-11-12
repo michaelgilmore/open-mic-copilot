@@ -62,7 +62,7 @@ export function transposeText(text: string, steps: number, preferFlats = false):
   return text
     .split("\n")
     .map((line) => {
-      const withBrackets = line.replace(/\[([^\]]+)\]/g, (_, c) => `[${transposeChord(c, steps, preferFlats)}]`);
+      const withBrackets = line.replace(/\[([^\]]+)\]/g, (all, c) => (CHORD_TOKEN.test(c) ? `[${transposeChord(c, steps, preferFlats)}]` : all));
       // Capo annotations describe the guitar setup, not chord tokens.
       // Ignore them when recognizing a chord line, but preserve them verbatim.
       // Also ignore section labels ("Verse:") and parenthetical notes ("(open tuning)").
@@ -75,4 +75,53 @@ export function transposeText(text: string, steps: number, preferFlats = false):
       return withBrackets;
     })
     .join("\n");
+}
+
+/** Every chord symbol transposeText would change: [bracket] chords and tokens on chord-only lines. */
+export function chordTokens(text: string): string[] {
+  const out: string[] = [];
+  for (const line of text.split("\n")) {
+    for (const m of line.matchAll(/\[([^\]]+)\]/g)) if (m[1] && CHORD_TOKEN.test(m[1])) out.push(m[1]);
+    const chordLine = line.replace(/\([^)]*\)/g, "").replace(/^\s*[A-Za-z][\w ]*:\s*/, "");
+    const tokens = chordLine.trim().split(/[\s|]+/).filter(Boolean);
+    if (tokens.length && tokens.some((t) => CHORD_TOKEN.test(t)) && tokens.every((t) => CHORD_TOKEN.test(t) || t === "-" || /^x\d$/.test(t))) {
+      out.push(...tokens.filter((t) => CHORD_TOKEN.test(t)));
+    }
+  }
+  return out;
+}
+
+/** Pitch class (0–11) of a key's relative major, or -1 when unparseable. */
+export function relativeMajorPc(key: string): number {
+  const m = key.match(/^([A-G][#b]?)(m(?!aj))?/);
+  if (!m || !m[1]) return -1;
+  const i = noteIndex(m[1]);
+  return i < 0 ? -1 : (i + (m[2] ? 3 : 0)) % 12;
+}
+
+/**
+ * Guess the key the chords in a text are written in, as a relative-major pitch class.
+ * Returns null when there are too few chords to tell.
+ */
+export function detectChordKeyPc(text: string): number | null {
+  const chords = chordTokens(text);
+  if (chords.length < 3) return null;
+  const parsed = chords.map((c) => {
+    const m = c.match(/^([A-G][#b]?)(m(?!aj)|dim)?/);
+    return { pc: noteIndex(m?.[1] ?? ""), minor: m?.[2] === "m" };
+  }).filter((c) => c.pc >= 0);
+  // Major-key degrees: I ii iii IV V vi, plus bVII.
+  const degrees: [number, boolean][] = [[0, false], [2, true], [4, true], [5, false], [7, false], [9, true], [10, false]];
+  let best: number | null = null, bestScore = -1;
+  for (let t = 0; t < 12; t++) {
+    let score = 0;
+    for (const c of parsed) {
+      const d = degrees.find(([o, mi]) => (t + o) % 12 === c.pc && mi === c.minor);
+      if (d) score += d[0] === 10 ? 0.5 : 1;
+    }
+    const first = parsed[0];
+    if (first && (first.pc === t && !first.minor || first.pc === (t + 9) % 12 && first.minor)) score += 0.75;
+    if (score > bestScore) { bestScore = score; best = t; }
+  }
+  return best;
 }

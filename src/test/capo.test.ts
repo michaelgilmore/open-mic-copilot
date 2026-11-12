@@ -39,3 +39,13 @@ describe("changing the chart capo on the edit screen", () => {
     expect(capoChordText("G Em C D (capo 1)", "Ab", "Ab", 1, 0)).toBe("Ab Fm Db Eb (capo 0)");
   });
 });
+
+describe("text chords written in a different key than the song", () => {
+  const lyrics = "F  C\nwords\nDm  A#\nmore\nF C Dm A#";
+  it("By And By: A with capo 2 shows G shapes even when lyrics were written in F", () =>
+    expect(capoChordText(lyrics, "A", "A", 2, 2)).toBe("G  D\nwords\nEm  C\nmore\nG D Em C"));
+  it("matching text is unchanged", () =>
+    expect(capoChordText("G D Em C", "A", "A", 2, 2)).toBe("G D Em C"));
+  it("no capo on By And By gives A shapes for mismatched lyrics", () =>
+    expect(capoChordText(lyrics, "A", "A", 2, 0)).toBe("A  E\nwords\nF#m  D\nmore\nA E F#m D"));
+});
