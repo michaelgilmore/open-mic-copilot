@@ -1,4 +1,5 @@
 # Tasks
+- [x] Add a Next-song button to songs opened from a setlist and verify it on phone and tablet.
 - [x] Compact the song toolbar into one row of round value buttons and verify popup adjustments on phone and tablet.
 - [x] Add and verify manual and random song replacement in setlists.
 - [x] Add home-screen app name and settings feedback form.

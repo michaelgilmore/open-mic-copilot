@@ -72,6 +72,8 @@ export function useSetlists() {
 export function useSetlist(id: string) {
   return useQuery({
     queryKey: ["setlist", id],
+    // The song view calls this with "" when the song was not opened from a setlist.
+    enabled: id !== "",
     queryFn: async () => {
       const { data, error } = await supabase
         .from("setlists")

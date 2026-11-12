@@ -99,7 +99,7 @@ function SetlistPage() {
         {items.map((it, idx) => it.song && (
           <li key={it.id} className="flex items-center gap-1 rounded-xl border border-border bg-card p-2 sm:gap-3 sm:p-3">
             <span className="w-6 text-center font-mono text-sm text-primary">{idx + 1}</span>
-            <Link to="/songs/$id" params={{ id: it.song.id }} className="min-w-0 flex-1">
+            <Link to="/songs/$id" params={{ id: it.song.id }} search={{ from: id }} className="min-w-0 flex-1">
               <div className="truncate font-semibold">{it.song.title}</div>
               <div className="truncate text-xs text-muted-foreground">{it.song.artist} · {it.song.your_key ?? it.song.song_key}{(it.song.your_capo ?? originalCapo(it.song.capo, it.song.chords)) ? ` · Capo ${it.song.your_capo ?? originalCapo(it.song.capo, it.song.chords)}` : ""}</div>
             </Link>

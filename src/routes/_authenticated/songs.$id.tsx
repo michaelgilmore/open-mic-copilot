@@ -1,8 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Play, Pause, Pencil, Trash2, ArrowLeft, Save } from "lucide-react";
+import { Play, Pause, Pencil, Trash2, ArrowLeft, Save, SkipForward, ListMusic } from "lucide-react";
 import { toast } from "sonner";
-import { useDeleteSong, useSaveSong, useSong } from "@/lib/data";
+import { useDeleteSong, useSaveSong, useSetlist, useSong } from "@/lib/data";
+import { setlistNavigation } from "@/lib/setlist-navigation";
 import { setFlasherTempo } from "@/lib/tempo-store";
 import { stepsBetween, transposeKey } from "@/lib/transpose";
 import { originalCapo, capoChordText, shapeKey, CAPO_MAX } from "@/lib/capo";
@@ -11,13 +12,20 @@ import { SongValueControl } from "@/components/SongValueControl";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/songs/$id")({
+  // `from` carries the setlist the song was opened from so the view can offer Next.
+  validateSearch: (search: Record<string, unknown>): { from?: string | undefined } => ({
+    from: typeof search["from"] === "string" && search["from"] ? search["from"] : undefined,
+  }),
   head: () => ({ meta: [{ title: "Song — Open Mic Copilot" }, { name: "description", content: "Perform with lyrics, chord shapes, capo, key and tempo settings." }, { property: "og:title", content: "Song — Open Mic Copilot" }, { property: "og:description", content: "Your song's lyrics, capo-aware chords and performance settings." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: SongView,
 });
 
 function SongView() {
   const { id } = Route.useParams();
+  const { from } = Route.useSearch();
   const { data: song, isLoading } = useSong(id);
+  const { data: sourceSetlist } = useSetlist(from ?? "");
+  const nav = sourceSetlist ? setlistNavigation(sourceSetlist.items, id) : null;
   const save = useSaveSong();
   const del = useDeleteSong();
   const navigate = useNavigate();
@@ -34,6 +42,11 @@ function SongView() {
     setSpeed(song.scroll_speed);
     setDraft({ your_key: song.your_key ?? null, your_tempo: song.your_tempo ?? null, your_capo: song.your_capo ?? null });
   }, [song]);
+
+  // Moving to another song in a setlist should start at the top of its chart.
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [id]);
 
   const flasherTempo = song ? (draft.your_tempo ?? song.tempo) : null;
   useEffect(() => {
@@ -135,7 +148,13 @@ function SongView() {
   return (
     <div className="pb-40">
       <div className="flex items-start gap-3">
-        <Button asChild variant="ghost" size="icon"><Link to="/songs" aria-label="Back"><ArrowLeft /></Link></Button>
+        <Button asChild variant="ghost" size="icon">
+          {from ? (
+            <Link to="/setlists/$id" params={{ id: from }} aria-label="Back to setlist"><ArrowLeft /></Link>
+          ) : (
+            <Link to="/songs" aria-label="Back"><ArrowLeft /></Link>
+          )}
+        </Button>
         <div className="min-w-0 flex-1">
           <h1 className="text-3xl font-extrabold leading-tight sm:text-4xl">{song.title}</h1>
           <p className="text-muted-foreground">
@@ -145,7 +164,23 @@ function SongView() {
             {yourTempo && song.tempo && yourTempo !== song.tempo ? ` (orig ${song.tempo})` : ""}
             {yourCapo > 0 ? ` · Capo ${yourCapo} (${shapes} shapes)` : " · No capo"}
           </p>
+          {nav && <p className="font-mono text-xs text-muted-foreground">{nav.index + 1} of {nav.total} in {sourceSetlist?.name}</p>}
         </div>
+        {nav?.next ? (
+          <Button asChild variant="outline" className="shrink-0 gap-1.5" title={`Next up: ${nav.next.song?.title ?? "song"}`}>
+            <Link to="/songs/$id" params={{ id: nav.next.song!.id }} search={{ from }} aria-label={`Next song: ${nav.next.song?.title ?? ""}`}>
+              <SkipForward className="size-4" />
+              <span className="hidden sm:inline">Next</span>
+            </Link>
+          </Button>
+        ) : nav ? (
+          <Button asChild variant="outline" className="shrink-0 gap-1.5" title="That is the last song in this setlist">
+            <Link to="/setlists/$id" params={{ id: from ?? "" }} aria-label="Open setlist">
+              <ListMusic className="size-4" />
+              <span className="hidden sm:inline">Setlist</span>
+            </Link>
+          </Button>
+        ) : null}
         <Button asChild variant="outline" size="icon"><Link to="/edit/$id" params={{ id }} aria-label="Edit"><Pencil /></Link></Button>
         <Button variant="ghost" size="icon" onClick={remove} aria-label="Delete"><Trash2 /></Button>
       </div>
