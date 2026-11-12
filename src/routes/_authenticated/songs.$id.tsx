@@ -1,13 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Minus, Plus, Play, Pause, Pencil, Trash2, RotateCcw, ArrowLeft, Save } from "lucide-react";
+import { Play, Pause, Pencil, Trash2, ArrowLeft, Save } from "lucide-react";
 import { toast } from "sonner";
 import { useDeleteSong, useSaveSong, useSong } from "@/lib/data";
 import { setFlasherTempo } from "@/lib/tempo-store";
 import { stepsBetween, transposeKey } from "@/lib/transpose";
 import { originalCapo, capoChordText, shapeKey, CAPO_MAX } from "@/lib/capo";
 import { hasUnsavedKeyOrTempo, type KeyTempoDraft } from "@/lib/song-draft";
-import { cn } from "@/lib/utils";
+import { SongValueControl } from "@/components/SongValueControl";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/songs/$id")({
@@ -166,57 +166,23 @@ function SongView() {
       </section>
 
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-3 gap-y-3 px-4 py-3">
-          <div className="flex items-center gap-1">
-            <Button variant="secondary" size="icon" onClick={() => changeKey(-1)} aria-label="Key down half step"><Minus /></Button>
-            <div className="w-16 text-center">
-              <div className="font-mono text-lg font-semibold text-chord">{yourKey}</div>
-              <div className="text-[10px] text-muted-foreground">{steps === 0 ? "key · original" : `${steps > 0 ? "+" : ""}${steps} from ${song.song_key}`}</div>
-            </div>
-            <Button variant="secondary" size="icon" onClick={() => changeKey(1)} aria-label="Key up half step"><Plus /></Button>
-            {steps !== 0 && <Button variant="ghost" size="icon" onClick={resetKey} aria-label="Reset key"><RotateCcw /></Button>}
-          </div>
-          <div className="flex items-center gap-1">
-            <Button variant="secondary" size="icon" onClick={() => changeCapo(-1)} disabled={yourCapo === 0} aria-label="Capo down"><Minus /></Button>
-            <div className="w-12 text-center">
-              <div className="font-mono text-lg font-semibold">{yourCapo}</div>
-              <div className="text-[10px] text-muted-foreground">{yourCapo === baseCapo ? `capo · ${shapes}` : `orig ${baseCapo} · ${shapes}`}</div>
-            </div>
-            <Button variant="secondary" size="icon" onClick={() => changeCapo(1)} disabled={yourCapo >= CAPO_MAX} aria-label="Capo up"><Plus /></Button>
-            {draft.your_capo != null && <Button variant="ghost" size="icon" onClick={() => setDraft((d) => ({ ...d, your_capo: null }))} aria-label="Reset capo"><RotateCcw /></Button>}
-          </div>
-          <div className="flex items-center gap-1">
-            <Button variant="secondary" size="icon" onClick={() => changeTempo(-1)} aria-label="Tempo down"><Minus /></Button>
-            <div className="w-20 text-center">
-              <div className="font-mono text-lg font-semibold">{yourTempo ?? "—"}</div>
-              <div className="text-[10px] text-muted-foreground">{yourTempo && song.tempo && yourTempo !== song.tempo ? `orig ${song.tempo}` : "bpm"}</div>
-            </div>
-            <Button variant="secondary" size="icon" onClick={() => changeTempo(1)} aria-label="Tempo up"><Plus /></Button>
-            {draft.your_tempo != null && <Button variant="ghost" size="icon" onClick={resetTempo} aria-label="Reset tempo"><RotateCcw /></Button>}
-          </div>
-          <div className="flex items-center gap-1">
-            <Button size="icon" className="size-11 rounded-full" onClick={() => setPlaying(!playing)} aria-label={playing ? "Stop scrolling" : "Start scrolling"}>
+        <div role="toolbar" aria-label="Song controls" className="mx-auto flex max-w-5xl flex-nowrap items-start justify-center gap-1.5 overflow-x-auto px-2 py-3 sm:gap-4 sm:px-4">
+          <SongValueControl label="Key" value={yourKey} changed={steps !== 0} detail={`Original ${song.song_key}`} decreaseLabel="Key down half step" increaseLabel="Key up half step" onDecrease={() => changeKey(-1)} onIncrease={() => changeKey(1)} onReset={resetKey} />
+          <SongValueControl label="Capo" value={yourCapo} changed={draft.your_capo != null} detail={`Original ${baseCapo} · ${shapes} shapes`} decreaseDisabled={yourCapo === 0} increaseDisabled={yourCapo >= CAPO_MAX} onDecrease={() => changeCapo(-1)} onIncrease={() => changeCapo(1)} onReset={() => setDraft((d) => ({ ...d, your_capo: null }))} />
+          <SongValueControl label="Tempo" value={yourTempo ?? "—"} changed={draft.your_tempo != null} detail={`Original ${song.tempo ?? "—"} bpm`} decreaseDisabled={yourTempo != null && yourTempo <= 30} increaseDisabled={yourTempo != null && yourTempo >= 300} onDecrease={() => changeTempo(-1)} onIncrease={() => changeTempo(1)} onReset={resetTempo} />
+          <div className="flex shrink-0 flex-col items-center gap-1">
+            <Button size="icon" className="size-9 rounded-full sm:size-11" onClick={() => setPlaying(!playing)} aria-label={playing ? "Stop scrolling" : "Start scrolling"} title={playing ? "Stop scrolling" : "Start scrolling"}>
               {playing ? <Pause /> : <Play />}
             </Button>
-            <Button variant="secondary" size="icon" onClick={() => changeSpeed(-5)} aria-label="Scroll speed down"><Minus /></Button>
-            <div className="w-14 text-center">
-              <div className="font-mono text-lg font-semibold">{speed}</div>
-              <div className="text-[10px] text-muted-foreground">scroll</div>
-            </div>
-            <Button variant="secondary" size="icon" onClick={() => changeSpeed(5)} aria-label="Scroll speed up"><Plus /></Button>
+            <span className="text-[10px] leading-none text-muted-foreground">{playing ? "Stop" : "Play"}</span>
           </div>
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="sm" onClick={() => setFontSize(Math.max(12, fontSize - 2))}>A−</Button>
-            <Button variant="ghost" size="sm" onClick={() => setFontSize(Math.min(40, fontSize + 2))}>A+</Button>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button size="sm" onClick={saveChanges} disabled={!dirty || save.isPending} aria-label="Save key, tempo and capo for this song">
+          <SongValueControl label="Scroll" value={speed} decreaseLabel="Scroll speed down" increaseLabel="Scroll speed up" decreaseDisabled={speed <= 5} increaseDisabled={speed >= 150} onDecrease={() => changeSpeed(-5)} onIncrease={() => changeSpeed(5)} onReset={() => { setSpeed(30); commitSpeed(30); }} />
+          <SongValueControl label="Text" value={fontSize} decreaseLabel="Text size down" increaseLabel="Text size up" decreaseDisabled={fontSize <= 12} increaseDisabled={fontSize >= 40} onDecrease={() => setFontSize(Math.max(12, fontSize - 2))} onIncrease={() => setFontSize(Math.min(40, fontSize + 2))} onReset={() => setFontSize(18)} />
+          <div className="flex shrink-0 flex-col items-center gap-1">
+            <Button size="icon" className="size-9 rounded-full sm:size-11" onClick={saveChanges} disabled={!dirty || save.isPending} aria-label="Save key, tempo and capo for this song" title={dirty ? "Save changes" : "Saved"}>
               <Save />
-              {save.isPending ? "Saving…" : "Save"}
             </Button>
-            <span className={cn("text-[10px]", dirty ? "text-chord" : "text-muted-foreground")}>
-              {dirty ? "unsaved changes" : "saved"}
-            </span>
+            <span aria-live="polite" className="text-[10px] leading-none text-muted-foreground">{save.isPending ? "Saving" : dirty ? "Save" : "Saved"}</span>
           </div>
         </div>
       </div>
