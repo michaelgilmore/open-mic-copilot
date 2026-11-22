@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { originalCapo, shapeKey, capoChordText, CAPO_MAX } from "@/lib/capo";
+import { checkSongConsistency, resolveSongConsistency, type SongResolution } from "@/lib/song-consistency";
+import { SongConsistencyDialog } from "@/components/SongConsistencyDialog";
 
 export const Route = createFileRoute("/_authenticated/edit/$id")({
   head: () => ({ meta: [{ title: "Edit Song — Open Mic Copilot" }, { name: "description", content: "Add or edit lyrics, chords, original key, tempo and capo." }, { property: "og:title", content: "Edit Song — Open Mic Copilot" }, { property: "og:description", content: "Manage your song's original key, capo and chord chart." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -22,6 +24,7 @@ function EditSong() {
   const { data: song } = useSong(id);
   const save = useSaveSong();
   const [f, setF] = useState({ title: "", artist: "", key: "C", minor: false, tempo: "", capo: "0", chords: "", lyrics: "", notes: "" });
+  const [showConflict, setShowConflict] = useState(false);
 
   useEffect(() => {
     if (song) {
@@ -38,12 +41,21 @@ function EditSong() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    const check = checkSongConsistency(f);
+    if (isNew && (check.conflicts.length || check.annotations.length)) {
+      setShowConflict(true);
+      return;
+    }
+    await persist(f);
+  }
+
+  async function persist(values: typeof f) {
     try {
       const saved = await save.mutateAsync({
         id: isNew ? undefined : id,
         values: {
-          title: f.title.trim(), artist: f.artist.trim(), song_key: f.key + (f.minor ? "m" : ""),
-          tempo: f.tempo ? parseInt(f.tempo, 10) : null, capo: Number(f.capo), chords: f.chords.replace(/\(capo\s+\d+\)/gi, `(capo ${Number(f.capo)})`), lyrics: f.lyrics, notes: f.notes,
+          title: values.title, artist: values.artist, song_key: values.key + (values.minor ? "m" : ""),
+          tempo: values.tempo ? parseInt(values.tempo, 10) : null, capo: Number(values.capo), chords: values.chords, lyrics: values.lyrics, notes: values.notes,
         },
       });
       toast.success("Saved");
@@ -51,6 +63,15 @@ function EditSong() {
     } catch (err) {
       toast.error((err as Error).message);
     }
+  }
+
+  async function resolve(resolution: SongResolution) {
+    const next = resolveSongConsistency(f, resolution);
+    setF(next);
+    // Key/capo choices may leave a conflicting literal annotation; review it again.
+    const remaining = checkSongConsistency(next);
+    if (resolution !== "keep" && (remaining.conflicts.length || remaining.annotations.length)) return;
+    await persist(next);
   }
 
   const select = "h-9 rounded-md border border-input bg-background px-2 text-sm";
@@ -75,6 +96,10 @@ function EditSong() {
         <div>
           <Label htmlFor="capo">Original chord-chart capo</Label>
           <select id="capo" className={select + " w-full"} value={f.capo} onChange={(e) => {
+            if (isNew) {
+              setF({ ...f, capo: e.target.value });
+              return;
+            }
             // Keep the sounding key: rewrite chord shapes in the chart and lyrics for the new capo.
             const key = f.key + (f.minor ? "m" : "");
             const from = Number(f.capo), to = Number(e.target.value);
@@ -100,6 +125,7 @@ function EditSong() {
         <Button disabled={save.isPending}>Save song</Button>
         <Button type="button" variant="ghost" onClick={() => history.back()}>Cancel</Button>
       </div>
+      <SongConsistencyDialog open={showConflict} entry={f} pending={save.isPending} onClose={() => setShowConflict(false)} onResolve={resolve} />
     </form>
   );
 }

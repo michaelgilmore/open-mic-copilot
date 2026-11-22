@@ -38,3 +38,4 @@ use the editor.
 - Transposition logic lives in src/lib/transpose.ts with tests in src/test/transpose.test.ts; why: key changes must stay correct for chord lines and inline [chord] markers.
 - New accounts get starter songs copied from public.song_library by a signup trigger on auth.users; why: songs are per-user, so shared seed data must be copied into each user's own rows.
 - Song keys represent sounding pitch; capo-aware chord rendering lives in src/lib/capo.ts and uses the original capo (explicit field or legacy chart annotation) and personal capo override to derive shapes; why: changing capo must preserve the selected sounding key while keeping legacy starter charts compatible.
+- New-song consistency checks and explicit resolutions live in src/lib/song-consistency.ts; saved baseline text renders verbatim and creation never normalizes chords implicitly, because key inference is advisory and changes require the user's choice.

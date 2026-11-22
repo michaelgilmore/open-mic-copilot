@@ -10,6 +10,7 @@ import { originalCapo, capoChordText, shapeKey, CAPO_MAX } from "@/lib/capo";
 import { hasUnsavedKeyOrTempo, type KeyTempoDraft } from "@/lib/song-draft";
 import { SCROLL_DEFAULT, SCROLL_MAX, SCROLL_MIN, adjustScrollSpeed, clampScrollSpeed } from "@/lib/scroll-speed";
 import { SongValueControl } from "@/components/SongValueControl";
+import { checkSongConsistency } from "@/lib/song-consistency";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/songs/$id")({
@@ -84,6 +85,8 @@ function SongView() {
   const yourCapo = draft.your_capo ?? baseCapo;
   const yourTempo = draft.your_tempo ?? song.tempo;
   const shapes = shapeKey(yourKey, yourCapo);
+  const baselineCheck = checkSongConsistency({ key: song.song_key.replace(/m$/, ""), minor: song.song_key.endsWith("m"), capo: String(baseCapo), chords: song.chords, lyrics: song.lyrics });
+  const baselineConflict = steps === 0 && yourCapo === baseCapo && (baselineCheck.conflicts.length > 0 || baselineCheck.annotations.length > 0);
 
   function commitSpeed(v: number) {
     save.mutate({ id, values: { title: currentSong.title, scroll_speed: v } });
@@ -163,7 +166,7 @@ function SongView() {
             {steps !== 0 ? ` (orig ${song.song_key})` : ""}
             {yourTempo ? ` · ${yourTempo} bpm` : ""}
             {yourTempo && song.tempo && yourTempo !== song.tempo ? ` (orig ${song.tempo})` : ""}
-            {yourCapo > 0 ? ` · Capo ${yourCapo} (${shapes} shapes)` : " · No capo"}
+            {yourCapo > 0 ? ` · Capo ${yourCapo} (${baselineConflict ? "expected " : ""}${shapes} shapes)` : " · No capo"}
           </p>
           {nav && <p className="font-mono text-xs text-muted-foreground">{nav.index + 1} of {nav.total} in {sourceSetlist?.name}</p>}
         </div>
@@ -187,10 +190,11 @@ function SongView() {
       </div>
 
       {song.notes && <p className="mt-4 rounded-lg border-l-4 border-primary bg-card px-4 py-3 text-sm">{song.notes}</p>}
+      {baselineConflict && <p role="status" className="mt-4 border-l-4 border-primary px-4 py-2 text-sm text-muted-foreground">Saved chord text may not match key {yourKey} with {yourCapo ? `capo ${yourCapo}` : "no capo"}. Your text is unchanged; edit the song to review its values.</p>}
 
       {song.chords && (
         <section className="sticky top-[60px] z-10 -mx-4 mt-6 border-b border-border bg-background/95 px-4 pb-3 backdrop-blur">
-          <h2 className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Chords · {yourCapo > 0 ? `Capo ${yourCapo} · ${shapes} shapes` : `No capo · ${shapes}`}</h2>
+          <h2 className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Chords · {yourCapo > 0 ? `Capo ${yourCapo} · ${baselineConflict ? "expected " : ""}${shapes} shapes` : `No capo · ${baselineConflict ? "expected " : ""}${shapes}`}</h2>
           <pre className="mt-2 whitespace-pre-wrap font-mono font-semibold text-chord" style={{ fontSize }}>{capoChordText(song.chords, song.song_key, yourKey, baseCapo, yourCapo)}</pre>
         </section>
       )}

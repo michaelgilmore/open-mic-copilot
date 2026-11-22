@@ -1,4 +1,5 @@
 # Tasks
+- [x] Preserve new-song entries and offer explicit key/capo conflict resolutions; verify saving and performance display.
 - [x] Limit the scroll speed control to 5–30 stepping by ones, and verify it in the app.
 - [x] Add a Next-song button to songs opened from a setlist and verify it on phone and tablet.
 - [x] Compact the song toolbar into one row of round value buttons and verify popup adjustments on phone and tablet.

@@ -42,8 +42,10 @@ describe("changing the chart capo on the edit screen", () => {
 
 describe("text chords written in a different key than the song", () => {
   const lyrics = "F  C\nwords\nDm  A#\nmore\nF C Dm A#";
-  it("By And By: A with capo 2 shows G shapes even when lyrics were written in F", () =>
-    expect(capoChordText(lyrics, "A", "A", 2, 2)).toBe("G  D\nwords\nEm  C\nmore\nG D Em C"));
+  it("opening at saved settings leaves mismatching text unchanged", () =>
+    expect(capoChordText(lyrics, "A", "A", 2, 2)).toBe(lyrics));
+  it("How to Save a life keeps entered G shapes with saved key G and capo 3", () =>
+    expect(capoChordText("G D Em C", "G", "G", 3, 3)).toBe("G D Em C"));
   it("matching text is unchanged", () =>
     expect(capoChordText("G D Em C", "A", "A", 2, 2)).toBe("G D Em C"));
   it("no capo on By And By gives A shapes for mismatched lyrics", () =>

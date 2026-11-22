@@ -22,6 +22,8 @@ export function capoChordSteps(originalKey: string, targetKey: string, original:
 }
 
 export function capoChordText(text: string, originalKey: string, targetKey: string, original: number, selected: number): string {
+  // Opening a song at its saved settings is not permission to normalize its text.
+  if (stepsBetween(originalKey, targetKey) === 0 && original === selected) return text;
   let steps = capoChordSteps(originalKey, targetKey, original, selected);
   // Confirm the chords in the text really are in the shapes the app expects.
   // If they are written in another key, transpose from what is actually written.
