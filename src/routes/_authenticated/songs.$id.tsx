@@ -8,6 +8,7 @@ import { setFlasherTempo } from "@/lib/tempo-store";
 import { stepsBetween, transposeKey } from "@/lib/transpose";
 import { originalCapo, capoChordText, shapeKey, CAPO_MAX } from "@/lib/capo";
 import { hasUnsavedKeyOrTempo, type KeyTempoDraft } from "@/lib/song-draft";
+import { SCROLL_DEFAULT, SCROLL_MAX, SCROLL_MIN, adjustScrollSpeed, clampScrollSpeed } from "@/lib/scroll-speed";
 import { SongValueControl } from "@/components/SongValueControl";
 import { Button } from "@/components/ui/button";
 
@@ -30,7 +31,7 @@ function SongView() {
   const del = useDeleteSong();
   const navigate = useNavigate();
   const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(30);
+  const [speed, setSpeed] = useState(SCROLL_DEFAULT);
   const [fontSize, setFontSize] = useState(18);
   // Pending key/tempo edits — only written to the song when Save is pressed.
   const [draft, setDraft] = useState<KeyTempoDraft>({ your_key: null, your_tempo: null, your_capo: null });
@@ -39,7 +40,7 @@ function SongView() {
 
   useEffect(() => {
     if (!song) return;
-    setSpeed(song.scroll_speed);
+    setSpeed(clampScrollSpeed(song.scroll_speed));
     setDraft({ your_key: song.your_key ?? null, your_tempo: song.your_tempo ?? null, your_capo: song.your_capo ?? null });
   }, [song]);
 
@@ -89,7 +90,7 @@ function SongView() {
   }
 
   function changeSpeed(delta: number) {
-    const next = Math.min(150, Math.max(5, speed + delta));
+    const next = adjustScrollSpeed(speed, delta);
     setSpeed(next);
     commitSpeed(next);
   }
@@ -211,7 +212,7 @@ function SongView() {
             </Button>
             <span className="text-[10px] leading-none text-muted-foreground">{playing ? "Stop" : "Play"}</span>
           </div>
-          <SongValueControl label="Scroll" value={speed} decreaseLabel="Scroll speed down" increaseLabel="Scroll speed up" decreaseDisabled={speed <= 5} increaseDisabled={speed >= 150} onDecrease={() => changeSpeed(-5)} onIncrease={() => changeSpeed(5)} onReset={() => { setSpeed(30); commitSpeed(30); }} />
+          <SongValueControl label="Scroll" value={speed} detail={`Speed ${SCROLL_MIN} to ${SCROLL_MAX}`} decreaseLabel="Scroll speed down" increaseLabel="Scroll speed up" decreaseDisabled={speed <= SCROLL_MIN} increaseDisabled={speed >= SCROLL_MAX} onDecrease={() => changeSpeed(-1)} onIncrease={() => changeSpeed(1)} onReset={() => { setSpeed(SCROLL_DEFAULT); commitSpeed(SCROLL_DEFAULT); }} />
           <SongValueControl label="Text" value={fontSize} decreaseLabel="Text size down" increaseLabel="Text size up" decreaseDisabled={fontSize <= 12} increaseDisabled={fontSize >= 40} onDecrease={() => setFontSize(Math.max(12, fontSize - 2))} onIncrease={() => setFontSize(Math.min(40, fontSize + 2))} onReset={() => setFontSize(18)} />
           <div className="flex shrink-0 flex-col items-center gap-1">
             <Button size="icon" className="size-9 rounded-full sm:size-11" onClick={saveChanges} disabled={!dirty || save.isPending} aria-label="Save key, tempo and capo for this song" title={dirty ? "Save changes" : "Saved"}>
